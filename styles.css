@@ -1,0 +1,56 @@
+/* Reset */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#app{height:100%}
+body{font-family:Inter,system-ui,Arial;background:#071226;color:#e6eef8;display:flex;align-items:center;justify-content:center;padding:18px}
+
+/* Splash */
+.splash{position:fixed;inset:0;background:linear-gradient(180deg,#04112b,#031126);display:flex;align-items:center;justify-content:center;z-index:9999}
+.curtain{position:absolute;inset:0;display:flex}
+.panel{flex:1;height:100%;background:linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));backdrop-filter:blur(1px)}
+.panel.left{transform-origin:left;animation:open-left .85s cubic-bezier(.2,.9,.3,1) forwards}
+.panel.right{transform-origin:right;animation:open-right .85s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes open-left{100%{transform:translateX(-120%) rotateY(-8deg);opacity:0}}
+@keyframes open-right{100%{transform:translateX(120%) rotateY(8deg);opacity:0}}
+.logo{text-align:center;z-index:3}
+.sara{font-size:48px;font-weight:800;background:linear-gradient(90deg,#6EE7B7,#60A5FA);-webkit-background-clip:text;color:transparent}
+.subtitle{margin-top:8px;color:rgba(230,238,248,0.8);font-size:14px}
+
+/* App */
+.app{width:min(1100px,96vw);height:min(820px,92vh);background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.6);overflow:hidden;position:relative}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(255,255,255,0.03)}
+header h1{font-size:16px}
+.controls{display:flex;gap:10px;align-items:center}
+
+/* grid */
+.grid{padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:16px;cursor:pointer;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s}
+.card:hover{transform:translateY(-8px);box-shadow:0 18px 40px rgba(14,36,84,0.22)}
+.card .title{font-weight:700;margin-bottom:6px}
+.card .meta{font-size:13px;color:rgba(230,238,248,0.75)}
+
+/* lighting */
+.card::before{content:'';position:absolute;top:-40%;left:-20%;width:160%;height:160%;background:radial-gradient(600px 200px at 20% 20%, rgba(120,200,255,0.08), transparent 10%), radial-gradient(400px 150px at 90% 80%, rgba(110,230,150,0.04), transparent 10%);transition:transform .6s}
+.card:hover::before{transform:translateY(-8px)}
+
+/* panels */
+.panelView{padding:18px 22px;display:flex;flex-direction:column;height:calc(100% - 72px)}
+.hidden{display:none}
+.metaText{opacity:.85;font-size:13px}
+.topRow{display:flex;justify-content:space-between;align-items:center}
+
+/* lists */
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+.unitCard{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));border-radius:12px;padding:14px;cursor:pointer;border:1px solid rgba(255,255,255,0.03)}
+.topicList{margin-top:12px;padding:12px;background:rgba(0,0,0,0.14);border-radius:10px;overflow:auto;max-height:320px}
+.topic{padding:10px;border-radius:8px;margin-bottom:8px;cursor:pointer;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);}
+
+/* response */
+.response{margin-top:12px;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));min-height:160px;overflow:auto}
+.controls-row{display:flex;gap:10px;align-items:center;margin-top:12px}
+.btn{background:#0b1420;color:#e6eef8;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.04)}
+.btn.primary{background:linear-gradient(90deg,#60A5FA,#6EE7B7);color:#041025}
+.small{font-size:13px;padding:6px 10px}
+
+/* modal */
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.5);z-index:2000}
+.modalCard{background:#071126;padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
