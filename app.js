@@ -1,4 +1,7 @@
-// app.js — vanilla JS frontend logic
+// app.js — full frontend logic for Sara AI (vanilla JS)
+// Replace API_BASE with your deployed backend URL (no trailing slash).
+const API_BASE = 'https://sara-ai-backend.onrender.com';
+
 const syllabus = {
   "Theory of structures": {
     desc: "Direct and bending stresses, slope & deflection, fixed & continuous beams, columns, moment distribution.",
@@ -54,16 +57,18 @@ const syllabus = {
   }
 };
 
+/* ----------------- DOM refs ----------------- */
 const subjectsGrid = document.getElementById('subjectsGrid');
 const home = document.getElementById('home');
 const unitsView = document.getElementById('units');
 const topicsView = document.getElementById('topics');
 const breadcrumb = document.getElementById('breadcrumb');
+const responseArea = document.getElementById('responseArea');
 
 let currentSubject = null, currentUnit = null, currentTopic = null;
 let controller = null, utter = null;
 
-// populate subjects
+/* ----------------- Populate subjects ----------------- */
 Object.keys(syllabus).forEach(subj=>{
   const card = document.createElement('div');
   card.className = 'card';
@@ -72,6 +77,7 @@ Object.keys(syllabus).forEach(subj=>{
   subjectsGrid.appendChild(card);
 });
 
+/* ----------------- Navigation handlers ----------------- */
 document.getElementById('backToSubjects').onclick = ()=> showView('home');
 document.getElementById('backToUnits').onclick = ()=> showView('units');
 document.getElementById('restart').onclick = ()=> location.reload();
@@ -85,14 +91,14 @@ function showView(v){
 }
 
 function openSubject(subj){
-  currentSubject=subj;
-  document.getElementById('subjectTitle').textContent=subj;
-  document.getElementById('subjectDesc').textContent=syllabus[subj].desc;
-  const list = document.getElementById('unitsList'); list.innerHTML='';
+  currentSubject = subj;
+  document.getElementById('subjectTitle').textContent = subj;
+  document.getElementById('subjectDesc').textContent = syllabus[subj].desc;
+  const list = document.getElementById('unitsList'); list.innerHTML = '';
   syllabus[subj].units.forEach((u,idx)=>{
-    const c=document.createElement('div'); c.className='unitCard';
-    c.innerHTML=`<strong>${u.title}</strong><div style='opacity:.8;margin-top:6px;font-size:13px'>${u.topics.slice(0,3).join(' • ')}</div>`;
-    c.addEventListener('click',()=> openUnit(idx)); list.appendChild(c);
+    const c = document.createElement('div'); c.className = 'unitCard';
+    c.innerHTML = `<strong>${u.title}</strong><div style='opacity:.8;margin-top:6px;font-size:13px'>${u.topics.slice(0,3).join(' • ')}</div>`;
+    c.addEventListener('click', ()=> openUnit(idx)); list.appendChild(c);
   });
   showView('units');
 }
@@ -103,14 +109,14 @@ function openUnit(idx){
   document.getElementById('unitDesc').textContent = currentUnit.topics.join(', ');
   const tlist = document.getElementById('topicList'); tlist.innerHTML = '';
   currentUnit.topics.forEach(t=>{
-    const el = document.createElement('div'); el.className='topic'; el.textContent = t;
+    const el = document.createElement('div'); el.className = 'topic'; el.textContent = t;
     el.addEventListener('click', ()=> selectTopic(t));
     tlist.appendChild(el);
   });
   showView('topics');
 }
 
-// language modal flow
+/* ----------------- Language modal flow ----------------- */
 const langModal = document.getElementById('langModal');
 let chosenLang = 'en';
 document.getElementById('askLanguageBtn').addEventListener('click', ()=> langModal.classList.remove('hidden'));
@@ -122,76 +128,189 @@ function selectTopic(t){
   currentTopic = t; langModal.classList.remove('hidden');
 }
 
+/* ----------------- Run Chat Request ----------------- */
 async function runChatRequest(topic, lang){
   if(!topic) return alert('No topic selected');
-  const responseArea = document.getElementById('responseArea');
+
   responseArea.innerHTML = `<em>Requesting explanation for <strong>${topic}</strong> (language: ${lang==='hi'?'Hindi':'English'}) ...</em>`;
 
-  const prompt = `Explain the topic: "${topic}" from the perspective of ${currentSubject} — include: a short definition, a stepwise detailed explanation, key formulas or concepts if any, example or simple problem, and a summary. Use emojis where helpful. Format the answer with clear headings, **bold** important terms, *italicize* subtle notes, and present bullet points or numbered steps. Keep language ${lang==='hi'?'Hindi':'English'}. Use LaTeX for formulas where needed.`;
+  // Build a careful prompt with formatting instructions (AI will use LaTeX when asked)
+  const prompt = `You are a clear college-level teacher. Explain the topic "${topic}" from the subject ${currentSubject}.
+Give:
+1) A short definition.
+2) Step-by-step explanation with numbered steps.
+3) Key formulas using LaTeX (denote formulas with $...$).
+4) One worked example (simple).
+5) A short summary.
+Use emojis where helpful. Format with headings, **bold** for important terms, *italic* for notes.
+Write the whole answer in ${lang==='hi' ? 'Hindi' : 'English'}.`;
 
+  // Abort previous if running
   if(controller) controller.abort();
   controller = new AbortController();
 
   try {
-    const res = await fetch('https://sara-ai-backend.onrender.com', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+    const res = await fetch(`${API_BASE}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      body: JSON.stringify({prompt, lang, topic, subject:currentSubject})
+      body: JSON.stringify({ prompt })
     });
-    if(!res.ok) throw new Error('Server error ' + res.status);
+
+    if(!res.ok) {
+      // Attempt to parse server error body
+      const errText = await res.text().catch(()=>res.statusText);
+      throw new Error(`Server responded ${res.status}: ${errText}`);
+    }
+
     const data = await res.json();
-    const text = data.text || 'No response';
+    const text = data.text || 'No response from server';
     responseArea.innerHTML = renderFormatting(text);
     speakText(text, lang);
+
   } catch(err){
-    if(err.name === 'AbortError') responseArea.innerHTML = '<em>Request aborted.</em>';
-    else responseArea.innerHTML = `<em style="color:#fca5a5">Error: ${err.message}</em>`;
+    if(err.name === 'AbortError') {
+      responseArea.innerHTML = '<em>Request aborted.</em>';
+    } else {
+      responseArea.innerHTML = `<em style="color:#fca5a5">Error: ${escapeHtml(err.message)}</em>`;
+      console.error('runChatRequest error:', err);
+    }
   }
 }
 
+/* ----------------- Formatting & LaTeX ----------------- */
 function renderFormatting(txt){
-  // basic **bold** and *italic* and list to HTML render
-  let out = txt.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  out = out.replace(/\*(.+?)\*/g,'<em>$1</em>');
-  out = out.split('\n').map(line=>{
-    if(/^\s*[-*]\s+/.test(line)) return '<li>'+line.replace(/^\s*[-*]\s+/, '')+'</li>';
-    if(/^\s*\d+\.\s+/.test(line)) return '<li>'+line.replace(/^\s*\d+\.\s+/, '')+'</li>';
-    return '<p>'+line+'</p>';
-  }).join('');
-  out = out.replace(/(<li>.*?<\/li>)+/gs, m=>'<ul>'+m+'</ul>');
-  // minimal LaTeX rendering fallback: wrap $...$ in <code> to be visible (katex not included in static version)
-  out = out.replace(/\$(.+?)\$/g, '<code>$1</code>');
+  if(!txt) return '<p>No content</p>';
+
+  // Try to render KaTeX if present: replace $...$ with rendered HTML
+  let work = escapeHtml(txt);
+
+  // Render inline LaTeX ($...$). We'll detect $...$ and replace with katex if available.
+  work = work.replace(/\$(.+?)\$/gs, (m, expr) => {
+    // expr is escaped HTML text now; unescape for katex rendering
+    const rawExpr = unescapeHtml(expr);
+    if(window.katex && typeof window.katex.renderToString === 'function'){
+      try {
+        return window.katex.renderToString(rawExpr, { throwOnError: false });
+      } catch (e) {
+        return `<code>${escapeHtml(rawExpr)}</code>`;
+      }
+    } else {
+      // fallback: show inline code-looking text
+      return `<code>${escapeHtml(rawExpr)}</code>`;
+    }
+  });
+
+  // Bold and italic: convert **bold** and *italic*
+  work = work.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  work = work.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Split by lines and convert lists
+  const lines = work.split(/\r?\n/);
+  let out = '';
+  let inList = false;
+  lines.forEach(line => {
+    if(/^\s*[-*]\s+/.test(line)){
+      if(!inList){ out += '<ul>'; inList = true; }
+      out += `<li>${line.replace(/^\s*[-*]\s+/, '')}</li>`;
+    } else if(/^\s*\d+\.\s+/.test(line)){
+      if(!inList){ out += '<ul>'; inList = true; }
+      out += `<li>${line.replace(/^\s*\d+\.\s+/, '')}</li>`;
+    } else {
+      if(inList){ out += '</ul>'; inList = false; }
+      if(line.trim() === '') out += '<br/>'; else out += `<p>${line}</p>`;
+    }
+  });
+  if(inList) out += '</ul>';
+
   return out;
 }
 
+/* ----------------- TTS (Text-to-Speech) ----------------- */
 function speakText(text, lang){
-  if(window.speechSynthesis){
+  if(!window.speechSynthesis) return;
+  try {
     window.speechSynthesis.cancel();
-    utter = new SpeechSynthesisUtterance(text);
-    utter.lang = (lang === 'hi' ? 'hi-IN' : 'en-IN');
-    utter.rate = 0.95; utter.pitch = 1;
-    const voices = window.speechSynthesis.getVoices();
-    const v = voices.find(v=>v.lang.startsWith(lang==='hi'?'hi':'en')) || voices[0];
+  } catch(e){ /* ignore */ }
+
+  // Prefer shorter text to speak; we will speak the plain text, not HTML
+  const plain = textToPlain(text);
+  utter = new SpeechSynthesisUtterance(plain);
+  utter.lang = (lang === 'hi' ? 'hi-IN' : 'en-IN');
+  utter.rate = 0.95;
+  utter.pitch = 1;
+
+  // choose a voice matching language if available
+  const voices = window.speechSynthesis.getVoices();
+  if(voices && voices.length){
+    const v = voices.find(v=>v.lang.toLowerCase().startsWith(utter.lang.split('-')[0])) || voices[0];
     if(v) utter.voice = v;
-    window.speechSynthesis.speak(utter);
   }
+
+  window.speechSynthesis.speak(utter);
 }
 
+/* Stop button */
 document.getElementById('stopSpeech').addEventListener('click', ()=> {
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   if(controller) controller.abort();
 });
 
+/* Copy result to clipboard */
 document.getElementById('copyBtn').addEventListener('click', ()=>{
-  const t = document.getElementById('responseArea').innerText;
-  navigator.clipboard.writeText(t).then(()=> alert('Copied to clipboard'));
+  const t = responseArea.innerText;
+  navigator.clipboard.writeText(t).then(()=> alert('Copied to clipboard')).catch(()=> alert('Unable to copy'));
 });
 
+/* Splash enter behavior */
 document.getElementById('enterBtn').addEventListener('click', ()=> {
   const s = document.getElementById('splash');
-  s.style.pointerEvents='none'; s.style.opacity='0'; setTimeout(()=> s.remove(),900);
+  s.style.pointerEvents = 'none';
+  s.style.opacity = '0';
+  setTimeout(()=> s.remove(), 900);
 });
 
-// Escape handling
-window.addEventListener('keydown', (e)=> { if(e.key === 'Escape'){ if(window.speechSynthesis) window.speechSynthesis.cancel(); if(controller) controller.abort(); }});
+/* Escape makes sure to stop speech and abort request */
+window.addEventListener('keydown', (e)=> {
+  if(e.key === 'Escape'){
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+    if(controller) controller.abort();
+  }
+});
+
+/* ----------------- Small helpers ----------------- */
+function textToPlain(text){
+  // If text arrived with markup, strip tags to read plain
+  return text.replace(/<\/?[^>]+(>|$)/g, '').replace(/\s{2,}/g,' ').trim();
+}
+
+function escapeHtml(unsafe){
+  if(unsafe === null || unsafe === undefined) return '';
+  return String(unsafe)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#039;');
+}
+
+function unescapeHtml(s){
+  return String(s)
+    .replaceAll('&amp;','&')
+    .replaceAll('&lt;','<')
+    .replaceAll('&gt;','>')
+    .replaceAll('&quot;','"')
+    .replaceAll('&#039;',"'");
+}
+
+/* Convert simple model output to plain readable text before speaking, or fallback if it's already plain */
+function stripMarkdown(md){
+  // remove markdown headings, emphasis symbols, and lists bullets for speech
+  return md.replace(/[#*_`]/g,'').replace(/[-*]\s+/g,'').replace(/\n{2,}/g,'\n').trim();
+}
+
+/* Convert markup to plain; used for TTS when the server returns markdown-like text */
+function plainFromServer(text){
+  // If server returned JSON with plain text, use it; else strip markup
+  return stripMarkdown(text);
+}
