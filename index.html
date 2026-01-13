@@ -1,78 +1,130 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sara AI — College Teaching Portal</title>
-  <link rel="stylesheet" href="styles.css">
+
+  <!-- Optional KaTeX for LaTeX rendering if you included it -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" integrity="" crossorigin="anonymous">
+
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="splash" class="splash">
+  <!-- Animated gradient + subtle particles (SVG) -->
+  <div class="bg-visual" aria-hidden="true">
+    <svg class="bg-svg" viewBox="0 0 1440 600" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="g1" x1="0" x2="1">
+          <stop offset="0%" stop-color="#05203a" />
+          <stop offset="50%" stop-color="#07172a" />
+          <stop offset="100%" stop-color="#042036" />
+        </linearGradient>
+        <filter id="grain">
+          <feTurbulence baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="t"/>
+          <feColorMatrix values="0 0 0 0 0.02 0 0 0 0 0.02 0 0 0 0 0.06 0 0 0 1 0"/>
+          <feBlend in="SourceGraphic" mode="overlay"/>
+        </filter>
+      </defs>
+
+      <rect width="100%" height="100%" fill="url(#g1)"/>
+      <!-- animated blob shapes -->
+      <g class="blobs" opacity="0.12">
+        <circle cx="120" cy="120" r="120" fill="#1e3a8a"/>
+        <circle cx="1280" cy="80" r="160" fill="#065f46"/>
+        <circle cx="900" cy="420" r="220" fill="#0ea5a5"/>
+      </g>
+    </svg>
+    <canvas id="bgParticles" class="bg-canvas" aria-hidden="true"></canvas>
+  </div>
+
+  <!-- cinematic curtain splash -->
+  <div id="splash" class="splash" role="dialog" aria-modal="true" aria-label="Welcome to Sara AI">
     <div class="curtain">
-      <div class="panel left"></div>
-      <div class="panel right"></div>
+      <div class="curtain-panel left"></div>
+      <div class="curtain-panel right"></div>
     </div>
-    <div class="logo">
-      <div class="sara">Sara AI</div>
-      <div class="subtitle">College teaching portal — interactive notes, ChatGPT-powered explanations & TTS</div>
-      <div style="margin-top:14px"><button id="enterBtn" class="btn primary small">Enter Portal</button></div>
+
+    <div class="splash-content">
+      <div class="logo">
+        <div class="sara">Sara <span class="ai">AI</span></div>
+        <div class="subtitle">Next-level college learning — interactive notes, ChatGPT-powered explanations & TTS</div>
+      </div>
+
+      <div class="splash-cta">
+        <button id="enterBtn" class="btn primary large" aria-label="Enter the portal">Enter Portal</button>
+        <div class="small-note">Press <kbd>Esc</kbd> anytime to stop voice or requests</div>
+      </div>
+
+      <div class="sparkles" aria-hidden="true"></div>
     </div>
   </div>
 
-  <main id="app" class="app">
-    <header>
-      <h1>Sara AI — Teaching Portal</h1>
+  <main id="app" class="app" role="main" tabindex="-1">
+    <header class="app-header">
+      <div class="brand">
+        <h1>Sara AI</h1>
+        <div class="tag">Teaching Portal</div>
+      </div>
+
       <div class="controls">
-        <div id="breadcrumb">Home</div>
-        <button id="restart" class="btn small">Restart</button>
+        <div id="breadcrumb" class="breadcrumb">Home</div>
+        <div class="control-buttons">
+          <button id="restart" class="btn ghost" title="Reload">Restart</button>
+        </div>
       </div>
     </header>
 
+    <!-- SUBJECT GRID -->
     <section id="home" class="panelView">
-      <p style="opacity:0.9">Select a subject to begin.</p>
-      <div class="grid" id="subjectsGrid"></div>
+      <p class="lead">Select a subject to begin. Hover a card to feel the lighting and tilt.</p>
+      <div class="grid" id="subjectsGrid" aria-live="polite" aria-atomic="true"></div>
     </section>
 
+    <!-- UNITS -->
     <section id="units" class="panelView hidden">
       <div class="topRow">
         <div>
           <h3 id="subjectTitle">Subject</h3>
           <div id="subjectDesc" class="metaText"></div>
         </div>
-        <div><button id="backToSubjects" class="btn small">Back</button></div>
+        <div><button id="backToSubjects" class="btn ghost">Back</button></div>
       </div>
       <div class="list" id="unitsList"></div>
     </section>
 
+    <!-- TOPICS -->
     <section id="topics" class="panelView hidden">
       <div class="topRow">
         <div>
           <h3 id="unitTitle">Unit</h3>
           <div id="unitDesc" class="metaText"></div>
         </div>
-        <div><button id="backToUnits" class="btn small">Back</button></div>
+        <div><button id="backToUnits" class="btn ghost">Back</button></div>
       </div>
 
       <div class="topicList" id="topicList"></div>
 
       <div class="controls-row">
-        <button id="askLanguageBtn" class="btn primary small">Ask language before sending to GPT</button>
+        <button id="askLanguageBtn" class="btn primary small">Choose language</button>
         <div style="flex:1"></div>
         <button id="stopSpeech" class="btn small">Stop Speech</button>
       </div>
 
-      <div class="response" id="responseArea">Select a topic to request a detailed explanation from the ChatGPT model.</div>
+      <div class="response" id="responseArea" role="region" aria-live="polite">Select a topic to request a detailed explanation from the ChatGPT model.</div>
+
       <div class="controls-row" style="justify-content:flex-end">
         <button id="copyBtn" class="btn small">Copy</button>
       </div>
     </section>
 
-    <div id="langModal" class="modal hidden">
+    <!-- language modal -->
+    <div id="langModal" class="modal hidden" role="dialog" aria-modal="true">
       <div class="modalCard">
-        <div style="margin-bottom:8px">Which language do you want the explanation in?</div>
-        <div style="display:flex;gap:8px">
+        <div class="modalTitle">Choose language</div>
+        <div class="modalRow">
           <button data-lang="en" class="btn small">English</button>
-          <button data-lang="hi" class="btn small">हिन्दी (Hindi)</button>
+          <button data-lang="hi" class="btn small">हिन्दी</button>
         </div>
       </div>
     </div>
