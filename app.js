@@ -133,7 +133,7 @@ async function runChatRequest(topic, lang){
   controller = new AbortController();
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch('https://sara-ai-backend.onrender.com', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       signal: controller.signal,
