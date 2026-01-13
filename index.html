@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sara AI — College Teaching Portal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="splash" class="splash">
+    <div class="curtain">
+      <div class="panel left"></div>
+      <div class="panel right"></div>
+    </div>
+    <div class="logo">
+      <div class="sara">Sara AI</div>
+      <div class="subtitle">College teaching portal — interactive notes, ChatGPT-powered explanations & TTS</div>
+      <div style="margin-top:14px"><button id="enterBtn" class="btn primary small">Enter Portal</button></div>
+    </div>
+  </div>
+
+  <main id="app" class="app">
+    <header>
+      <h1>Sara AI — Teaching Portal</h1>
+      <div class="controls">
+        <div id="breadcrumb">Home</div>
+        <button id="restart" class="btn small">Restart</button>
+      </div>
+    </header>
+
+    <section id="home" class="panelView">
+      <p style="opacity:0.9">Select a subject to begin.</p>
+      <div class="grid" id="subjectsGrid"></div>
+    </section>
+
+    <section id="units" class="panelView hidden">
+      <div class="topRow">
+        <div>
+          <h3 id="subjectTitle">Subject</h3>
+          <div id="subjectDesc" class="metaText"></div>
+        </div>
+        <div><button id="backToSubjects" class="btn small">Back</button></div>
+      </div>
+      <div class="list" id="unitsList"></div>
+    </section>
+
+    <section id="topics" class="panelView hidden">
+      <div class="topRow">
+        <div>
+          <h3 id="unitTitle">Unit</h3>
+          <div id="unitDesc" class="metaText"></div>
+        </div>
+        <div><button id="backToUnits" class="btn small">Back</button></div>
+      </div>
+
+      <div class="topicList" id="topicList"></div>
+
+      <div class="controls-row">
+        <button id="askLanguageBtn" class="btn primary small">Ask language before sending to GPT</button>
+        <div style="flex:1"></div>
+        <button id="stopSpeech" class="btn small">Stop Speech</button>
+      </div>
+
+      <div class="response" id="responseArea">Select a topic to request a detailed explanation from the ChatGPT model.</div>
+      <div class="controls-row" style="justify-content:flex-end">
+        <button id="copyBtn" class="btn small">Copy</button>
+      </div>
+    </section>
+
+    <div id="langModal" class="modal hidden">
+      <div class="modalCard">
+        <div style="margin-bottom:8px">Which language do you want the explanation in?</div>
+        <div style="display:flex;gap:8px">
+          <button data-lang="en" class="btn small">English</button>
+          <button data-lang="hi" class="btn small">हिन्दी (Hindi)</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
